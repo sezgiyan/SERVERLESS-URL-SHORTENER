@@ -1,0 +1,50 @@
+LAMBDA PYTHON CODE:
+1.	import json
+2.	import boto3
+3.	import string
+4.	import random
+5.	
+6.	dynamodb = boto3.resource('dynamodb')
+7.	table = dynamodb.Table('URLTable')
+8.	
+9.	def generate_code(length=6):
+10.	    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+11.	
+12.	def lambda_handler(event, context):
+13.	    body = json.loads(event['body'])
+14.	    original_url = body.get('url')
+15.	
+16.	    if not original_url:
+17.	        return {
+18.	            'statusCode': 400,
+19.	            'body': json.dumps({'error': 'URL is required'})
+20.	        }
+21.	
+22.	    short_code = generate_code()
+23.	    
+24.	    table.put_item(Item={
+25.	        'shortCode': short_code,
+26.	        'originalURL': original_url
+27.	    })
+28.	
+29.	    # ✅ Safe handling for 'host'
+30.	    default_host = "your-api-id.execute-api.eu-north-1.amazonaws.com"
+31.	    stage = "dev"
+32.	
+33.	    host = event.get('headers', {}).get('host', default_host)
+34.	    
+35.	    short_url = f"https://{host}/{stage}/{short_code}"
+36.	
+37.	    return {
+38.	        'statusCode': 200,
+39.	        'body': json.dumps({
+40.	            'short_url': short_url,
+41.	            'short_code': short_code
+42.	        })
+43.	    }
+
+TEST EVENT CODE:
+{
+  "body": "{\"url\": \"https://www.twitter.com\"}"
+}
+
